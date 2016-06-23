@@ -1,0 +1,12 @@
+---
+title: "NEON Data Institute Final Project"
+author: "David McCaffrey and Enrique Monta&ntilde;o"
+date: "June 23, 2016"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Individual Tree Crown and Species Identification using Spectrum and Water Indices
