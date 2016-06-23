@@ -24,3 +24,24 @@ calculate or extract indices (ndvi, water stress)
 
 Workflow:
 * 
+
+
+## Test of loading site inventory data 
+
+```{r load-site-inventory}
+source("scripts/load_data.R")
+
+# site name
+site <- "osbs"
+
+inventory <- loadSiteData(site = site)
+inventory
+
+# list of unique species at the site
+site_species <- listSpecies(inventory)
+site_species
+length(site_species)
+
+
+```
+
