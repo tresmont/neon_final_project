@@ -35,6 +35,7 @@ library(sp)
 library(rgeos)
 library(rhdf5)
 library(neonAOP)
+library(dplyr)
 source("scripts/load_data.R")
 source("scripts/neon-create-aop-subset-master/find-aopHSI-flightlines.R")
 source("scripts/bufferPoints.R")
@@ -43,7 +44,7 @@ source("scripts/bufferPoints.R")
 site <- "sjer"
 
 inventory <- loadSiteData(site = site, type = "structure")
-inventory
+# View(inventory)
 
 # list of unique species at the site
 site_species <- listSpecies(inventory)
@@ -91,12 +92,65 @@ ptPoly <- bufferPoly(site, ptShape, 20)
   
 plotPoly <- readOGR("output/", "SJER_20")
 
-# goodFlightLines <-  find_intersect_h5(h5.files, plotPoly)
+goodFlightLines <-  find_intersect_h5(h5.files, plotPoly)
+
+
+# select the first poly
+plot1intersect <- find_intersect_h5(h5.files, plotPoly[1,])
+
+sub1 <- getSubset(plot1intersect[2], plotPoly[1,])
+
+
+
+# get spectra for each band
+spectra <- extract_av_refl(sub1,
+                           aFun = mean)
+spectra <- as.data.frame(spectra)
+
+spectra$wavelength <- getWavelengths(plot1intersect[2])
+
+# plot spectra
+qplot(x=spectra$wavelength,
+      y=spectra$spectra,
+      xlab="Wavelength (nm)",
+      ylab="Reflectance",
+      main="Mean Spectra for all pixels\nSJER Plot 1068",
+      ylim = c(0, .35))
+
+
+# run with SD
+spectra_sd <- extract_av_refl(sub1,
+                           aFun = sd)
+spectra_sd <- as.data.frame(spectra_sd)
+
+spectra_sd$wavelength <- getWavelengths(plot1intersect[2])
+
+# plot spectra
+qplot(x=spectra_sd$wavelength,
+      y=spectra_sd$spectra,
+      xlab="Wavelength (nm)",
+      ylab="Reflectance",
+      main="SD of Spectra for all pixels\nSJER Plot 1068",
+      ylim = c(0, .35))
+
+
 # goodFlightLines
 
-clip_sub <- plotPoly[1,]
-sub_intersect <- find_intersect_h5(h5.files, 
-                                 clip_sub)
+# extract chm for each plot poly
+# sjer_chm <- raster("../NEONdata/D17-California/SJER/2013/lidar/SJER_lidarCHM.tif")
+# # create a vector list to hold the results
+# plot_chm <- vector("list", length(plotPoly))
+# # loop over the ploys and extract CHM
+# for(i in 1:length(plotPoly)) {
+#   clip_sub <- plotPoly[i,]
+#   plot_chm[[i]] <- extract(sjer_chm,
+#                     clip_sub,
+#                     sp=TRUE,
+#                     stringsAsFactors=FALSE)
+# }
+# 
+# plot(plot_chm[[1]][[1]])
+h5.files
 
 
 
