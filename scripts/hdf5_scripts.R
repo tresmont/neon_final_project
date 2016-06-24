@@ -57,7 +57,7 @@ getWavelengths <- function(fileName){
   return(wavelengths)
 }
 
-allBands <- function(fileName) {
+getAllBands <- function(fileName) {
   if(missing(fileName)){
     stop("File name is required")
   }
@@ -69,7 +69,7 @@ allBands <- function(fileName) {
   bands <- c(1:length(wavelengths))
   
   # create a projection string
-  epsg <- mapInfo_2_EPSG(fileName)
+  epsg <- mapInfo_2_proj(fileName, "epsg")
   
   # get stack
   all.bands.stack <- create_stack(fileName, 
@@ -84,6 +84,62 @@ allBands <- function(fileName) {
 }
 
 
+getSubset <- function(f, polyObj) {
+  if(missing(f)) {
+    stop("file is required")
+  }
+  if(missing(polyObj)) {
+    stop("polygon object is required")
+  }
+  
+  # get the length of bands from wavelengths
+  wavelengths <- getWavelengths(f)
+  
+  # get all the bands
+  bands <- c(1:length(wavelengths))
+  
+  # create a projection string
+  epsg <- mapInfo_2_proj(f, "epsg")
+  
+  h5_ext <- create_extent(f)
+  # h5_ext
+  
+  # turn the H5 extent into a polygon to check overlap
+  h5_ext_poly <- as(extent(h5_ext), 
+                    "SpatialPolygons")
+  
+  inExtent <- checkExtent(h5_ext_poly, polyObj)
+  if(inExtent){
+    # within the clipping extent
+    index_bounds <- calculate_index_extent(extent(polyObj),
+                                           h5_ext)
+    print(index_bounds)
+    
+    # clip out raster
+    refClip <- create_stack(file=f,
+                                 bands=bands,
+                                 epsg=epsg,
+                                 subset=TRUE,
+                                 dims=index_bounds)
+    return(refClip)
+  }
+  
+}
+
+# get spectra for each band
+# spectra <- extract_av_refl(b, 
+                           # aFun = mean)
+# spectra <- as.data.frame(spectra)
+
+# spectra$wavelength <- getWavelengths(a[1])
+
+# plot spectra
+# qplot(x=spectra$wavelength,
+#       y=spectra$spectra,
+#       xlab="Wavelength (nm)",
+#       ylab="Reflectance",
+#       main="Spectra for all pixels",
+#       ylim = c(0, .35))
 
 ###############################################
 # Code below modified from https://github.com/lwasser/neon-create-aop-subset
@@ -94,16 +150,16 @@ allBands <- function(fileName) {
 # inputs: 
 # h5.extent: the spatial extent of the h5 file
 # clipShp: a spatial polygon object
-checkExtent <- function(h5.extent, clipShp){
+checkExtent <- function(h5_extent, clipShp){
   # create polygon extent assign CRS to extent 
-  h5.extent.sp <- as(h5.extent, "SpatialPolygons")
+  h5_extent_sp <- as(h5_extent, "SpatialPolygons")
   
   # note this is ASSUMING both the extent and the h5 file are in the same CRS
-  crs(rasterExtPoly) <-  crs(clip.polygon)
+  crs(h5_extent_sp) <-  crs(clipShp)
   
   # check to see if the polygons overlap
   # return a boolean (1= the raster contains pixels within the extent, 0 it doesn't)
-  return(gIntersects(h5.extent.sp, clip.polygon))
+  return(gIntersects(h5_extent_sp, clipShp))
 }
 
 ################ Write Extent Shapefiles Function ########################
@@ -113,37 +169,40 @@ checkExtent <- function(h5.extent, clipShp){
 # shpDir: path to the output directory where you want to store the data
 # projf4Str: the proj4 formated string of the CRS that the H5 file is in.
 # NOTE: proj4 NEEDS to be in the same proj as your h5 file
-# write_shapefile_bound <- function(f, shpDir, proj4Str){
-#   # create shapefileName
-#   # output
-#   h5.extent <- create_extent(f)
-#   # create polygon extent assign CRS to extent 
-#   h5.extent.sp <- as(h5.extent, "SpatialPolygons")
-#   # create data.frame, add the name of the file to the shapefile
-#   sp.df <- data.frame(id=basename(f))
-#   sp.obj <- SpatialPolygonsDataFrame(h5.extent.sp, sp.df)
-#   # assign CRS
-#   crs(sp.obj) <- CRS(proj4Str)
-#   # create shapefile output name
-#   outName <- gsub(pattern = ".h5",
-#                   x = basename(f),
-#                   replacement = "")
-#   writeOGR(sp.obj, 
-#            shpDir, #path to export to
-#            outName,
-#            driver="ESRI Shapefile",
-#            overwrite_layer = TRUE)
-# }
+write_shapefile_bound <- function(f, shpDir, proj4Str){
+  # create shapefileName
+  # output
+  h5.extent <- create_extent(f)
+  # create polygon extent assign CRS to extent
+  h5.extent.sp <- as(h5.extent, "SpatialPolygons")
+  # create data.frame, add the name of the file to the shapefile
+  sp.df <- data.frame(id=basename(f))
+  sp.obj <- SpatialPolygonsDataFrame(h5.extent.sp, sp.df)
+  # assign CRS
+  crs(sp.obj) <- CRS(proj4Str)
+  # create shapefile output name
+  outName <- gsub(pattern = ".h5",
+                  x = basename(f),
+                  replacement = "")
+  writeOGR(sp.obj,
+           shpDir, #path to export to
+           outName,
+           driver="ESRI Shapefile",
+           overwrite_layer = TRUE)
+}
 
 ##################### Run Export Polygon Boundary for Each Flightline ##############
 
 # # export extent polygon for all flightlines
-# proj4Str <- "+proj=utm +zone=11 +datum=WGS84 +units=m +no_defs +ellps=WGS84 +towgs"
-# shpDir <- paste0("exports/", site, "_flightLines")
+proj4Str <- "+proj=utm +zone=11 +datum=WGS84 +units=m +no_defs +ellps=WGS84 +towgs"
+
+shpDir <- paste0("output/", site, "_flightLines")
+
+
 # 
-# sapply(h5.files, write_shapefile_bound,
-#        proj4Str = proj4Str,
-#        shpDir = shpDir)
+sapply(a, write_shapefile_bound,
+       proj4Str = proj4Str,
+       shpDir = shpDir)
 
 #################### End Export Polygon Boundary for Each Flightline ###########
 
@@ -238,26 +297,3 @@ find_intersect_h5 <- function(h5.files, clip.polygon){
 #   h5ls(f,all=T) 
 #   
 #   
-#   ## ----read-spatial-attributes---------------------------------------------
-#   
-#   #r get spatialInfo using the h5readAttributes function 
-#   spInfo <- h5readAttributes(f,"spatialInfo")
-#   # import spatial information from the map info in the hdf file
-#   mapInfo <- h5read(f, 
-#                     "map info",
-#                     read.attributes = TRUE)
-#   # print the info
-#   mapInfo
-#   
-#   #r get attributes for the Reflectance dataset
-#   reflInfo <- h5readAttributes(f,"Reflectance")
-#   
-#   ## ----read-band-wavelengths-----------------------------------------------
-#   
-#   #read in the wavelength information from the HDF5 file
-#   wavelengths<- h5read(f,"wavelength")
-#   #convert wavelength to nanometers (nm)
-#   #NOTE: this is optional!
-#   wavelengths <- wavelengths*1000
-#   
-# }
