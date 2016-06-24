@@ -10,3 +10,38 @@ knitr::opts_chunk$set(echo = TRUE)
 ```
 
 ## Individual Tree Crown and Species Identification using Spectrum and Water Indices
+
+## Ojectives
+
+Find sites with inventeries.  Find associated products.  Use CHM and crown metrics from individual trees.  This is where we expect to see trees.  Run ITC on 
+
+Validated canopy and estimated canopy from inventories
+estimated canopy from ITC, what error are we seeing between the two?
+
+extract spectra from points
+calculate or extract indices (ndvi, water stress)
+
+
+Workflow:
+* 
+
+
+## Test of loading site inventory data 
+
+```{r load-site-inventory}
+source("scripts/load_data.R")
+
+# site name
+site <- "osbs"
+
+inventory <- loadSiteData(site = site)
+inventory
+
+# list of unique species at the site
+site_species <- listSpecies(inventory)
+site_species
+length(site_species)
+
+
+```
+
