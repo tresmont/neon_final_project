@@ -3,14 +3,19 @@ library(dplyr)
 
 # function to get the site inventory
 # created separately as a convenience function
-loadSiteData <- function(site) {
+loadSiteData <- function(site, type ){ #= c("inventory", "structure")) {
   if (missing(site)){
     stop("Site name is required")
   }
   
   # get the inventory data for the site
   sitePath <- file.path(site, "inventory")
-  siteCSV <- list.files(sitePath, pattern = "*1m2Data.csv")
+  # type <- match.arg(tolower(type))
+  if (type == "structure") {
+    siteCSV <- list.files(sitePath, pattern = "*vegStr.csv")
+  } else {
+    siteCSV <- list.files(sitePath, pattern = "*1m2Data.csv")
+  }
   # print(siteCSV)
   siteData <- tbl_df(read.csv(file.path(sitePath,siteCSV),
                               stringsAsFactors = FALSE))
