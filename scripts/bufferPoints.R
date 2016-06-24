@@ -1,6 +1,7 @@
 # Function to create a buffered ploygon from points
 
 library(sp)
+library(rgdal)
 
 bufferPoly <- function(site, ptShp, radius){
   if(missing(ptShp)){
@@ -14,22 +15,32 @@ bufferPoly <- function(site, ptShp, radius){
     radius <- radius #radius in meters
   }
   
+  ptShp_base <- basename(ptShp)
+  ptShp_base_split <- strsplit(ptShp_base, "\\.")
+  ptShp_base_no_etx <- ptShp_base_split[1]
+  noextstr <- as.character(ptShp_base_no_etx[[1]][1])
+
+  ptShp_dir <- dirname(ptShp)
+  
+  pts <- readOGR(ptShp_dir, noextstr)
+  
+  
   #define the plot boundaries based upon the plot radius. 
   #NOTE: this assumes that plots are oriented North and are not rotated. 
   #If the plots are rotated, you'd need to do additional math to find 
   #the corners.
-  yPlus <- ptShp$northing+radius
-  xPlus <- ptShp$easting+radius
-  yMinus <- ptShp$northing-radius
-  xMinus <- ptShp$easting-radius
+  yPlus <- pts$northing+radius
+  xPlus <- pts$easting+radius
+  yMinus <- pts$northing-radius
+  xMinus <- pts$easting-radius
   
   #Extract the plot ID information. NOTE: because we set
   #stringsAsFactor to false above, we can import the plot 
   #ID's using the code below. If we didn't do that, our ID's would 
   #come in as factors by default. 
   #We'd thus have to use the code ID=as.character(centroids$Plot_ID) 
-  ID <- ptShp$Plot_ID
-  prj_info <- ptShp@proj4string@projargs
+  ID <- pts$Plot_ID
+  prj_info <- pts@proj4string@projargs
     
     
   #calculate polygon coordinates for each plot centroid. 
@@ -50,6 +61,8 @@ bufferPoly <- function(site, ptShp, radius){
   
   writeOGR(polys.df, 'output', paste(site, radius, sep = "_"), 'ESRI Shapefile',
            overwrite_layer=TRUE)
+  
+  return(polys.df)
   
 }
 
