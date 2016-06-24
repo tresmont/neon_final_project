@@ -29,18 +29,70 @@ Workflow:
 ## Test of loading site inventory data 
 
 ```{r load-site-inventory}
+library(raster)
+library(rgdal)
+library(sp)
+library(rgeos)
+library(rhdf5)
+library(neonAOP)
 source("scripts/load_data.R")
+source("scripts/neon-create-aop-subset-master/find-aopHSI-flightlines.R")
+source("scripts/bufferPoints.R")
 
 # site name
-site <- "osbs"
+site <- "sjer"
 
-inventory <- loadSiteData(site = site)
+inventory <- loadSiteData(site = site, type = "structure")
 inventory
 
 # list of unique species at the site
 site_species <- listSpecies(inventory)
 site_species
 length(site_species)
+
+# get list of flightlines
+### SJER clip
+site <- "SJER"
+domain <- "D17"
+fullDomain <- "D17-California"
+year <- "2013"
+
+##### Define your hard drive path. Mac's often use "volumes" for an external hard drive
+##### Windows often use a letter "D:" etc
+drivePath <- "Volumes"
+driveName <- "AOP-NEON1-4"
+
+########## Reflectance data variables based upon the hard drive structure
+dataProduct <- "Reflectance"
+dataType <- "Spectrometer"
+level <- paste0(site,"_L1")
+productType <- paste0(site,"_", dataType)
+
+
+
+### Define the data directory where the h5 files are stored
+
+dataDir <- file.path(drivePath, driveName,
+                      domain,
+                      site, year, level, productType, dataProduct)
+
+
+# you only need this is you are using a mac
+dataDir <- paste0("/", dataDir)
+# get a list of all files in the dir
+# if this variable returns no values, that means your dataDir is wrong OR
+# the data dir doesn't have any information in it.
+h5.files <- list.files(dataDir, pattern = '\\.h5$', full.names = TRUE)
+
+ptShape <- readOGR("../NEONdata/D17-California/SJER/vector_data/", "SJER_plot_centroids")
+
+# buffer the points to polygons with 20m radius
+ptPoly <- bufferPoly(site, ptShape, 20)
+  
+goodFlightLines <-  find_intersect_h5(h5.files, ptPoly)
+checkExtent
+
+
 
 
 ```
