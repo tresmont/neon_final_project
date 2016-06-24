@@ -32,9 +32,9 @@ Workflow:
 source("scripts/load_data.R")
 
 # site name
-site <- "osbs"
+site <- "sjer"
 
-inventory <- loadSiteData(site = site)
+inventory <- loadSiteData(site = site, type = "Struct")
 inventory
 
 # list of unique species at the site
