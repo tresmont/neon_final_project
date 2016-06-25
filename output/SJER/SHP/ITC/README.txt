@@ -1,0 +1,1 @@
+There was a bug in the naming function - these are all shape files, but I didn't strip the file extension off the basename, so it still says .tif

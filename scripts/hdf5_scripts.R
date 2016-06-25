@@ -32,9 +32,9 @@ mapInfo_2_proj <- function(f, type=c("proj", "epsg")){
   if(type == "proj"){
     outproj <- sprintf("+proj=%s +zone=%s +datum=%s +units=%s +no_defs +ellps=%s +towgs", tolower(mapInfo[1]), #projection
                     mapInfo[8], #zone
-                    mapInfo[10], #datum
-                    tolower(unlist(strsplit(mapInfo[11], "="))[2]), #units
-                    mapInfo[10]) #ellipsoid
+                    paste(strsplit(mapInfo[10], "-")[[1]], collapse = ''), #datum
+                    substring(tolower(unlist(strsplit(mapInfo[11], "="))[2]),1,1), #units
+                    paste(strsplit(mapInfo[10], "-")[[1]], collapse = '')) #ellipsoid
   }
   if(type == "epsg"){
     outproj <-  as.numeric(paste0(326, mapInfo[8]))  
@@ -126,20 +126,6 @@ getSubset <- function(f, polyObj) {
   
 }
 
-# get spectra for each band
-# spectra <- extract_av_refl(b, 
-                           # aFun = mean)
-# spectra <- as.data.frame(spectra)
-
-# spectra$wavelength <- getWavelengths(a[1])
-
-# plot spectra
-# qplot(x=spectra$wavelength,
-#       y=spectra$spectra,
-#       xlab="Wavelength (nm)",
-#       ylab="Reflectance",
-#       main="Spectra for all pixels",
-#       ylim = c(0, .35))
 
 ###############################################
 # Code below modified from https://github.com/lwasser/neon-create-aop-subset
@@ -169,7 +155,7 @@ checkExtent <- function(h5_extent, clipShp){
 # shpDir: path to the output directory where you want to store the data
 # projf4Str: the proj4 formated string of the CRS that the H5 file is in.
 # NOTE: proj4 NEEDS to be in the same proj as your h5 file
-write_shapefile_bound <- function(f, shpDir, proj4Str){
+write_shapefile_bound <- function(f, shpDir){
   # create shapefileName
   # output
   h5.extent <- create_extent(f)
@@ -178,6 +164,9 @@ write_shapefile_bound <- function(f, shpDir, proj4Str){
   # create data.frame, add the name of the file to the shapefile
   sp.df <- data.frame(id=basename(f))
   sp.obj <- SpatialPolygonsDataFrame(h5.extent.sp, sp.df)
+  
+  # get the proj infor from the file
+  proj4Str <- mapInfo_2_proj(f, "p")
   # assign CRS
   crs(sp.obj) <- CRS(proj4Str)
   # create shapefile output name
@@ -192,17 +181,20 @@ write_shapefile_bound <- function(f, shpDir, proj4Str){
 }
 
 ##################### Run Export Polygon Boundary for Each Flightline ##############
-
-# # export extent polygon for all flightlines
-proj4Str <- "+proj=utm +zone=11 +datum=WGS84 +units=m +no_defs +ellps=WGS84 +towgs"
-
-shpDir <- paste0("output/", site, "_flightLines")
-
-
-# 
-sapply(a, write_shapefile_bound,
-       proj4Str = proj4Str,
-       shpDir = shpDir)
+# requres a list of flights to extract
+generateFlightLines <- function(fileDir){
+  # # export extent polygon for all flightlines
+  # proj4Str <- "+proj=utm +zone=11 +datum=WGS84 +units=m +no_defs +ellps=WGS84 +towgs"
+  
+  shpDir <- paste0("output/", site, "_flightLines")
+  
+  
+  # 
+  sapply(fileDir, write_shapefile_bound,
+         #proj4Str = proj4Str,
+         shpDir = shpDir)
+  
+}
 
 #################### End Export Polygon Boundary for Each Flightline ###########
 
