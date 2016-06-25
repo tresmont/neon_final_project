@@ -2,7 +2,7 @@
 
 library(sp)
 
-bufferPoly <- function(site, ptShp, radius){
+bufferPoly <- function(site, type, plotID, ptShp, radius){
   if(missing(ptShp)){
     stop("input point polygon is required")
   }
@@ -12,6 +12,9 @@ bufferPoly <- function(site, ptShp, radius){
   } else {
     #set the radius for the plots
     radius <- radius #radius in meters
+  }
+  if(missing(type)){
+    type <- "centroid"
   }
   
   #define the plot boundaries based upon the plot radius. 
@@ -28,7 +31,12 @@ bufferPoly <- function(site, ptShp, radius){
   #ID's using the code below. If we didn't do that, our ID's would 
   #come in as factors by default. 
   #We'd thus have to use the code ID=as.character(centroids$Plot_ID) 
-  ID <- ptShp$Plot_ID
+  if(type == "centroi"){
+    ID <- ptShp$Plot_ID  
+  } else{
+    ID <- seq(1:length(ptShp))
+  }
+  
   prj_info <- ptShp@proj4string@projargs
     
     
@@ -46,10 +54,14 @@ bufferPoly <- function(site, ptShp, radius){
   polys.df <- SpatialPolygonsDataFrame(polys, data.frame(id=ID, row.names=ID))
   
   #write out the data
-  # outfile <- sprintf("%s_%sm", site, radius)
-  
-  writeOGR(polys.df, 'output', paste(site, radius, sep = "_"), 'ESRI Shapefile',
-           overwrite_layer=TRUE)
+  outfile <- paste(site, type, radius, sep = "_", collapse = '')
+
+  if(!missing(plotID)){
+    outfile <- paste(outfile, plotID, sep = "_", collapse = '')
+  }
+  print(outfile)
+  # writeOGR(polys.df, 'output', outfile, 'ESRI Shapefile',
+           # overwrite_layer=TRUE)
   
 }
 
