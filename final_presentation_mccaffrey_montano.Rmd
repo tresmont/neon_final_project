@@ -73,7 +73,8 @@ coords_2_shape <- function(subPlotData, proj4Str){
  - Started to make it more adaptable to calculate individual tree max canopy diameters
 ```{r eval=FALSE, echo=TRUE}
   # read in the centroid polys
-  ptShape <- readOGR("../NEONdata/D17-California/SJER/vector_data/", "SJER_plot_centroids")
+  ptShape <- readOGR("../NEONdata/D17-California/SJER/vector_data/",
+                     "SJER_plot_centroids")
 
 # buffer the points to polygons with 20m radius
 ptPoly <- bufferPoly(site, ptShape, 20)
@@ -101,7 +102,35 @@ sub1 <- getSubset(plot1intersect[2], plotPoly[1,])
 
 ```
 
-## Plot of ITC
+## package::itcSegment
+
+- This ITC function accepts both CHM and hyperspectral bands (812nm)
+- We focused on CHM
+- Many of the parameters that optimize the function are contained within veg structure data (e.g. max canopy diam, stem height)
+
+*** 
+
+```{r eval=FALSE, echo=TRUE}
+#run itcIMG
+out_itc_lst <- lapply(plot_ras_lst, itcIMG, epsg = utm_zone, 
+                      searchWinSize = 5,
+                      TRESHSeed = 0.45, TRESHCrown = 0.55, 
+                      DIST = 20, th = 1.5, ischm = TRUE)  
+
+#Write out shapefiles
+writePoly <- function(f){
+  for (i in 1:length(f)){
+            file <- out_itc_lst[[i]]
+            name <- plot_file_lst_names[[i]]
+            name_sans_ext <- file_path_sans_ext(name)
+            
+writeOGR(file, 'output',  name_sans_ext  , 
+         'ESRI Shapefile', 
+         overwrite_layer = TRUE, verbose = TRUE)
+```
+
+
+***
 
 ```{r eval=FALSE, echo=TRUE}
 source("scripts/extractRasterData.R")
@@ -128,9 +157,7 @@ if(!extent(chm)==extent(ptShape)) {
 
 ***
 
-![](final_itc_plot.png)
-
-```{r eval=FALSE, echo=FALSE}
+```{r eval=FALSE, echo=TRUE}
 plot(chm1, col=terrain.colors(10), 
      main="CHM for SJER Plot 37\nSan Joaquin Experimental Range",
      xlab = "UTM Long",
@@ -140,5 +167,11 @@ plot(ptShape, col=NA, border="red", add=TRUE)
 points(subplotPts$easting,subplotPts$northing, pch=19, cex=1)
 
 ```
+
+***
+
+![](final_itc_plot.png)
+
+
 
 
