@@ -15,7 +15,7 @@ knitr::opts_chunk$set(echo = FALSE)
 - Find sites with inventories
 - Find associated products.  
 - Use CHM and crown metrics from individual trees.
-  - run `package::itcSegmentation`
+  - run `package::itcSegment`
   - This is where we expect to see trees. 
 
 ## Concept
@@ -37,6 +37,7 @@ knitr::opts_chunk$set(echo = FALSE)
  - A library of functions for gathering site inventories
  
 ```{r eval=FALSE, echo=TRUE}
+  source("scripts/load_data.R")
   # site name
   site <- "sjer"
   
@@ -100,50 +101,43 @@ sub1 <- getSubset(plot1intersect[2], plotPoly[1,])
 
 ```
 
-<!--***
+## Plot of ITC
 
 ```{r eval=FALSE, echo=TRUE}
-getSubset <- function(f, polyObj) {
-  if(missing(f)) {
-    stop("file is required")
-  }
-  if(missing(polyObj)) {
-    stop("polygon object is required")
-  }
+source("scripts/extractRasterData.R")
+source("scripts/load_data.R")
+# site name
+site <- "sjer"
   
-  # get the length of bands from wavelengths
-  wavelengths <- getWavelengths(f)
-  
-  # get all the bands
-  bands <- c(1:length(wavelengths))
-  
-  # create a projection string
-  epsg <- mapInfo_2_proj(f, "epsg")
-  
-  h5_ext <- create_extent(f)
-  # h5_ext
-  
-  # turn the H5 extent into a polygon to check overlap
-  h5_ext_poly <- as(extent(h5_ext), 
-                    "SpatialPolygons")
-  
-  inExtent <- checkExtent(h5_ext_poly, polyObj)
-  if(inExtent){
-    # within the clipping extent
-    index_bounds <- calculate_index_extent(extent(polyObj),
-                                           h5_ext)
-    print(index_bounds)
-    
-    # clip out raster
-    refClip <- create_stack(file=f,
-                                 bands=bands,
-                                 epsg=epsg,
-                                 subset=TRUE,
-                                 dims=index_bounds)
-    return(refClip)
-  }
-  
+inventory <- loadSiteData(site = site, type = "structure")
+
+chm <- raster("../NEONdata/D17-California/SJER/2013/lidar/SJER_lidarCHM.tif")
+
+ptShape <- readOGR("output/SJER/FIG/", "SJER37")
+
+subPlotData <- inventory %>% filter(plotid == "SJER37")
+subplotPts <- coords_2_shape(subPlotData,
+                             proj4Str = ptShape@proj4string@projargs)
+
+if(!extent(chm)==extent(ptShape)) {
+  overlap <- intersect(extent(ptShape), extent(chm))
+  chm1 <- raster::crop(chm, overlap)
 }
+
 ```
--->
+
+***
+![]("final_plot.pdf")
+
+```{r eval=FALSE, echo=TRUE}
+plot(chm1, col=terrain.colors(10), 
+     main="CHM for SJER Plot 37\nSan Joaquin Experimental Range",
+     xlab = "UTM Long",
+     ylab = "UTM Lat")
+plot(ptShape, col=NA, border="red", add=TRUE)
+
+points(subplotPts$easting,subplotPts$northing, pch=19, cex=1)
+
+```
+
 
